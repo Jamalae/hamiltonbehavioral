@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hamilton Behavioral — OpsCenter</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#09090f;--bg2:#0e0e18;--bg3:#13131f;--bg4:#18182a;
+  --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.11);
+  --text:#dde0f0;--text2:#7a80a0;--text3:#3d4260;
+  --red:#f87171;--yellow:#fbbf24;--green:#34d399;
+  --mdpa:#6366f1;--mdpa-glow:rgba(99,102,241,0.15);--mdpa-dim:rgba(99,102,241,0.1);
+  --hnj:#22c55e;--hnj-glow:rgba(34,197,94,0.15);--hnj-dim:rgba(34,197,94,0.1);
+  --accent:var(--mdpa);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(99,102,241,0.018) 1px,transparent 1px),linear-gradient(90deg,rgba(99,102,241,0.018) 1px,transparent 1px);background-size:52px 52px;pointer-events:none;z-index:0;}
+
+header{position:sticky;top:0;z-index:100;background:rgba(9,9,15,0.96);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 32px;height:64px;display:flex;align-items:center;justify-content:space-between;}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:17px;letter-spacing:-0.5px;}
+.logo-tag{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-left:10px;}
+.header-right{display:flex;align-items:center;gap:14px;}
+.live-dot{width:6px;height:6px;border-radius:50%;animation:pulse 2s infinite;display:inline-block;margin-right:5px;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+.header-time{font-family:'DM Mono',monospace;font-size:11px;color:var(--text3);}
+.header-btn{background:transparent;border:1px solid var(--border);color:var(--text3);padding:6px 11px;border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:10px;transition:all 0.2s;margin-left:10px;text-transform:uppercase;letter-spacing:0.5px;}
+.header-btn:hover{border-color:var(--border2);color:var(--text2);}
+
+.brand-switcher{display:flex;gap:0;margin-bottom:0;border-bottom:1px solid var(--border);background:var(--bg2);}
+.brand-tab{flex:1;padding:18px 28px;cursor:pointer;border:none;background:transparent;transition:all 0.25s;position:relative;text-align:left;border-bottom:3px solid transparent;max-width:380px;}
+.brand-tab.active-mdpa{border-bottom-color:var(--mdpa);background:linear-gradient(180deg,var(--mdpa-dim) 0%,transparent 100%);}
+.brand-tab.active-hnj{border-bottom-color:var(--hnj);background:linear-gradient(180deg,var(--hnj-dim) 0%,transparent 100%);}
+.brand-tab:hover:not(.active-mdpa):not(.active-hnj){background:rgba(255,255,255,0.02);}
+.bt-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:5px;}
+.bt-name{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;letter-spacing:-0.3px;}
+.bt-sub{font-family:'DM Mono',monospace;font-size:9px;color:var(--text3);margin-top:3px;letter-spacing:0.3px;}
+
+main{position:relative;z-index:1;max-width:1440px;margin:0 auto;padding:28px 32px 80px;}
+
+.tabs{display:flex;gap:4px;margin-bottom:28px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:4px;width:fit-content;}
+.tab{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.5px;text-transform:uppercase;padding:8px 18px;border-radius:6px;cursor:pointer;border:none;background:transparent;color:var(--text3);transition:all 0.2s;}
+.tab.active{background:var(--bg3);color:var(--text);border:1px solid var(--border2);}
+.tab:hover:not(.active){color:var(--text2);}
+.tab.has-alert{border:1px solid var(--red);color:var(--red);}
+
+.brand-view{display:none;}.brand-view.active{display:block;}
+.inner-view{display:none;}.inner-view.active{display:block;}
+
+.alert-banner{background:linear-gradient(135deg,rgba(248,113,113,0.12),rgba(248,113,113,0.06));border:1px solid rgba(248,113,113,0.25);border-radius:10px;padding:16px 20px;margin-bottom:24px;display:flex;align-items:center;gap:12px;font-family:'DM Mono',monospace;font-size:11px;}
+.alert-banner .ind{margin-right:4px;}
+.alert-banner-text{flex:1;color:var(--text2);}
+
+.hero{border-radius:14px;padding:22px 28px;margin-bottom:28px;display:grid;align-items:center;gap:24px;}
+.hero-mdpa{background:linear-gradient(135deg,rgba(99,102,241,0.09),rgba(99,102,241,0.02));border:1px solid rgba(99,102,241,0.15);grid-template-columns:1fr auto auto auto auto;}
+.hero-hnj{background:linear-gradient(135deg,rgba(34,197,94,0.08),rgba(34,197,94,0.02));border:1px solid rgba(34,197,94,0.13);grid-template-columns:1fr auto auto auto auto;}
+.hero-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;letter-spacing:-0.5px;}
+.hero-sub{font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);letter-spacing:0.5px;margin-top:4px;}
+.hero-stat{text-align:center;padding:0 4px;}
+.hero-stat-val{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;}
+.hero-stat-label{font-family:'DM Mono',monospace;font-size:9px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-top:2px;}
+
+.sh{display:flex;align-items:center;gap:12px;margin-bottom:18px;}
+.sh-title{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text2);}
+.sh-line{flex:1;height:1px;background:var(--border);}
+
+.kpi-grid{display:grid;gap:12px;margin-bottom:28px;}
+.kpi-5{grid-template-columns:repeat(5,1fr);}
+.kpi-4{grid-template-columns:repeat(4,1fr);}
+@media(max-width:1100px){.kpi-5,.kpi-4{grid-template-columns:repeat(3,1fr);}}
+.kpi{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px 16px;position:relative;overflow:hidden;transition:border-color 0.2s;}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--k-c,#6366f1);opacity:0.75;}
+.kpi:hover{border-color:var(--border2);}
+.kpi-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);margin-bottom:8px;}
+.kpi-val{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;line-height:1;}
+.kpi-sub{font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);margin-top:5px;}
+.kpi-spark{height:24px;margin-top:10px;}
+.kpi-delta{font-family:'DM Mono',monospace;font-size:10px;margin-top:4px;}
+.du{color:var(--green);}.dd{color:var(--red);}.dn{color:var(--text3);}
+
+.ch2{display:grid;grid-template-columns:3fr 2fr;gap:14px;margin-bottom:28px;}
+.ch3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:28px;}
+.ch2b{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:28px;}
+@media(max-width:1000px){.ch2,.ch3,.ch2b{grid-template-columns:1fr;}}
+.cc{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;}
+.cc-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;margin-bottom:3px;}
+.cc-sub{font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);margin-bottom:18px;}
+
+.tw{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:28px;}
+.th-row{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.th-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;}
+table{width:100%;border-collapse:collapse;}
+thead th{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);padding:10px 18px;text-align:left;border-bottom:1px solid var(--border);}
+tbody tr{border-bottom:1px solid var(--border);transition:background 0.15s;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:rgba(255,255,255,0.02);}
+tbody td{padding:11px 18px;font-size:12px;color:var(--text2);}
+tbody td:first-child{color:var(--text);font-weight:500;}
+.mono{font-family:'DM Mono',monospace;font-size:11px;}
+
+.sp{font-family:'DM Mono',monospace;font-size:9px;padding:3px 9px;border-radius:10px;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;}
+.sp-g{background:rgba(52,211,153,0.12);color:#34d399;}
+.sp-w{background:rgba(251,191,36,0.12);color:#fbbf24;}
+.sp-r{background:rgba(248,113,113,0.12);color:#f87171;}
+.sp-i{background:rgba(99,102,241,0.15);color:#818cf8;}
+.sp-h{background:rgba(34,197,94,0.12);color:#22c55e;}
+
+.ind{width:8px;height:8px;border-radius:50%;display:inline-block;}
+.ig{background:#34d399;box-shadow:0 0 5px #34d399;}
+.iw{background:#fbbf24;box-shadow:0 0 5px #fbbf24;}
+.ir{background:#f87171;box-shadow:0 0 5px #f87171;}
+
+.prow{display:flex;align-items:center;padding:11px 18px;border-bottom:1px solid var(--border);gap:14px;transition:background 0.15s;}
+.prow:last-child{border-bottom:none;}
+.prow:hover{background:rgba(255,255,255,0.02);}
+.pav{width:32px;height:32px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;flex-shrink:0;}
+.pinfo{flex:1;}
+.pname{font-size:12px;font-weight:500;color:var(--text);}
+.prole{font-family:'DM Mono',monospace;font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-top:1px;}
+.util-w{width:90px;}
+.util-pct{font-family:'DM Mono',monospace;font-size:9px;color:var(--text2);text-align:right;margin-bottom:3px;}
+.util-bar{height:3px;background:var(--border);border-radius:2px;overflow:hidden;}
+.util-fill{height:100%;border-radius:2px;}
+
+.pipeline{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px;}
+@media(max-width:900px){.pipeline{grid-template-columns:repeat(2,1fr);}}
+.ps{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.ps-head{padding:11px 15px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.ps-name{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;}
+.ps-count{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;}
+.pc{padding:9px 13px;border-bottom:1px solid var(--border);transition:background 0.15s;}
+.pc:last-child{border-bottom:none;}
+.pc:hover{background:rgba(255,255,255,0.02);}
+.pc-name{font-size:11px;color:var(--text);font-weight:500;}
+.pc-meta{font-family:'DM Mono',monospace;font-size:9px;color:var(--text3);margin-top:2px;}
+
+.sf{display:flex;gap:7px;margin-bottom:18px;}
+.sb{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:5px 13px;border-radius:14px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text3);transition:all 0.2s;}
+.sb.active-hnj{border-color:var(--hnj);color:var(--hnj);background:rgba(34,197,94,0.08);}
+.sb:hover:not(.active-hnj){border-color:var(--border2);color:var(--text2);}
+
+.ci{display:flex;align-items:center;padding:11px 18px;border-bottom:1px solid var(--border);gap:13px;transition:background 0.15s;}
+.ci:last-child{border-bottom:none;}
+.ci:hover{background:rgba(255,255,255,0.02);}
+.ci-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.ci-name{flex:1;font-size:12px;color:var(--text);}
+.ci-due{font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);}
+
+.staff-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px;}
+.sc-head{padding:12px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.sc-title{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;}
+.srow{display:flex;align-items:center;padding:10px 16px;border-bottom:1px solid var(--border);gap:12px;transition:background 0.15s;}
+.srow:last-child{border-bottom:none;}
+.srow:hover{background:rgba(255,255,255,0.02);}
+.sav{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;flex-shrink:0;}
+.si{flex:1;}
+.sname{font-size:12px;font-weight:500;color:var(--text);}
+.srole{font-family:'DM Mono',monospace;font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.3px;}
+.prog-w{width:80px;}
+.prog-t{height:3px;background:var(--border);border-radius:2px;overflow:hidden;}
+.prog-f{height:100%;border-radius:2px;}
+.prog-pct{font-family:'DM Mono',monospace;font-size:9px;color:var(--text3);text-align:right;margin-bottom:3px;}
+.sval{font-family:'DM Mono',monospace;font-size:12px;color:var(--text);text-align:right;}
+.slabel{font-family:'DM Mono',monospace;font-size:9px;color:var(--text3);text-align:right;}
+
+.new-ref-btn{background:var(--hnj);color:#09090f;border:none;padding:8px 16px;border-radius:8px;font-family:'Syne',sans-serif;font-weight:700;font-size:11px;cursor:pointer;transition:all 0.2s;text-transform:uppercase;letter-spacing:0.5px;}
+.new-ref-btn:hover{opacity:0.9;transform:translateY(-1px);}
+
+.drawer{position:fixed;right:0;top:0;height:100%;width:400px;background:var(--bg2);border-left:1px solid var(--border);z-index:1000;overflow-y:auto;transform:translateX(100%);transition:transform 0.3s ease;}
+.drawer.active{transform:translateX(0);}
+.drawer-head{padding:20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;}
+.drawer-close{background:transparent;border:none;color:var(--text2);cursor:pointer;font-size:20px;transition:color 0.2s;}
+.drawer-close:hover{color:var(--text);}
+.drawer-body{padding:20px;}
+.form-group{margin-bottom:18px;}
+.form-label{display:block;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:6px;}
+.form-input,.form-select{width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:12px;transition:border-color 0.2s;}
+.form-input:focus,.form-select:focus{outline:none;border-color:var(--hnj);}
+.form-submit{width:100%;background:var(--hnj);color:#09090f;border:none;padding:10px;border-radius:8px;font-family:'Syne',sans-serif;font-weight:700;cursor:pointer;transition:all 0.2s;text-transform:uppercase;letter-spacing:0.5px;margin-top:20px;}
+.form-submit:hover{opacity:0.9;transform:translateY(-1px);}
+
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:2000;align-items:center;justify-content:center;}
+.modal.active{display:flex;}
+.modal-content{background:var(--bg2);border:1px solid var(--border);border-radius:12px;width:90%;max-width:500px;padding:24px;max-height:80vh;overflow-y:auto;}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;}
+.modal-close{background:transparent;border:none;color:var(--text2);cursor:pointer;font-size:20px;}
+
+@keyframes fi{from{opacity:0;transform:translateY(7px);}to{opacity:1;transform:translateY(0);}}
+.fi{animation:fi 0.3s ease forwards;}
+.fi1{animation-delay:0.04s;opacity:0;}.fi2{animation-delay:0.08s;opacity:0;}.fi3{animation-delay:0.12s;opacity:0;}.fi4{animation-delay:0.16s;opacity:0;}.fi5{animation-delay:0.20s;opacity:0;}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+
+.payer-badge{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.8px;text-transform:uppercase;padding:3px 10px;border-radius:10px;border:1px solid rgba(34,197,94,0.2);color:#22c55e;background:rgba(34,197,94,0.06);display:inline-block;margin-right:6px;margin-bottom:6px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex;align-items:baseline;gap:4px">
+    <div class="logo">Hamilton<span id="hdr-accent" style="color:#6366f1">HB</span></div>
+    <span class="logo-tag" id="hdr-tag">HB · Management</span>
+  </div>
+  <div class="header-right">
+    <span class="header-time"><span class="live-dot" id="live-dot" style="background:#6366f1;box-shadow:0 0 8px #6366f1"></span><span id="liveTime"></span></span>
+    <button class="header-btn" onclick="openSettings()">⚙</button>
+  </div>
+</header>
+
+<div class="brand-switcher">
+  <button class="brand-tab active-mdpa" id="btn-mdpa" onclick="switchBrand('mdpa')">
+    <div class="bt-label" style="color:#6366f1">Hamilton Behavioral</div>
+    <div class="bt-name" style="color:var(--text)">Management</div>
+    <div class="bt-sub">Management · Corporate Overview · HBH Operations</div>
+  </button>
+  <button class="brand-tab" id="btn-hnj" onclick="switchBrand('hnj')">
+    <div class="bt-label" style="color:#22c55e">Hamilton Behavioral</div>
+    <div class="bt-name" style="color:var(--text)">Health NJ</div>
+    <div class="bt-sub">Medicaid Operations · NJ Primary · NY/PA Overflow</div>
+  </button>
+</div>
+
+<main>
+
+  <!-- ═══════════ MDPA BRAND VIEW ═══════════ -->
+  <div class="brand-view active" id="bv-mdpa">
+
+    <div class="alert-banner" id="alert-mdpa" style="display:none;">
+      <span class="ind ir"></span>
+      <span class="alert-banner-text" id="alert-mdpa-text">1 compliance item overdue</span>
+    </div>
+
+    <div class="hero hero-mdpa fi fi1">
+      <div>
+        <div class="hero-title">Hamilton Behavioral Management</div>
+        <div class="hero-sub">MANAGEMENT · CORPORATE OVERVIEW · HBH OPERATIONS</div>
+      </div>
+      <div class="hero-stat"><div class="hero-stat-val" style="color:#6366f1">$30K</div><div class="hero-stat-label">Revenue MTD</div></div>
+      <div class="hero-stat"><div class="hero-stat-val" style="color:#6366f1">64%</div><div class="hero-stat-label">Collections Rate</div></div>
+      <div class="hero-stat"><div class="hero-stat-val" style="color:#6366f1">2</div><div class="hero-stat-label">Active Providers</div></div>
+      <div class="hero-stat"><div class="hero-stat-val" style="color:#f87171">1</div><div class="hero-stat-label">Compliance Alerts</div></div>
+    </div>
+
+    <div class="tabs" id="tabs-mdpa">
+      <button class="tab active" onclick="switchInner('mdpa','executive',this)">Executive</button>
+      <button class="tab" onclick="switchInner('mdpa','hbh-overview',this)">HBH Overview</button>
+      <button class="tab" onclick="switchInner('mdpa','providers',this)">Providers</button>
+      <button class="tab" onclick="switchInner('mdpa','compliance',this)">Compliance</button>
+      <button class="tab" onclick="switchInner('mdpa','referrals',this)">Referrals</button>
+    </div>
+
+    <!-- Executive tab -->
+    <div class="inner-view active" id="iv-mdpa-executive">
+      <div class="sh"><span class="sh-title">Key Metrics</span><div class="sh-line"></div></div>
+      <div class="kpi-grid kpi-5">
+        <div class="kpi fi1" style="--k-c:#6366f1"><div class="kpi-label">Corporate Revenue MTD</div><div class="kpi-val" data-target="30" data-prefix="$" data-suffix="K">$0K</div><canvas class="kpi-spark" id="spark-mdpa-rev" data-series="20,23,19,24,27,30" data-color="#6366f1"></canvas><div class="kpi-sub">HBH operations</div></div>
+        <div class="kpi fi2" style="--k-c:#fbbf24"><div class="kpi-label">Collections Rate</div><div class="kpi-val" data-target="64" data-suffix="%">0%</div><canvas class="kpi-spark" id="spark-mdpa-coll" data-series="60,62,58,63,64,64" data-color="#fbbf24"></canvas><div class="kpi-sub">Claims collected</div></div>
+        <div class="kpi fi3" style="--k-c:#34d399"><div class="kpi-label">Active Providers</div><div class="kpi-val" data-target="2">0</div><canvas class="kpi-spark" id="spark-mdpa-prov" data-series="2,2,2,2,2,2" data-color="#34d399"></canvas><div class="kpi-sub">Licensed clinical</div></div>
+        <div class="kpi fi4" style="--k-c:#6366f1"><div class="kpi-label">Referrals MTD</div><div class="kpi-val" data-target="9">0</div><canvas class="kpi-spark" id="spark-mdpa-ref" data-series="5,6,4,7,8,9" data-color="#6366f1"></canvas><div class="kpi-sub">Inbound</div></div>
+        <div class="kpi fi5" style="--k-c:#f87171"><div class="kpi-label">Compliance Alerts</div><div class="kpi-val" data-target="1">0</div><canvas class="kpi-spark" id="spark-mdpa-comp" data-series="0,1,2,1,2,1" data-color="#f87171"></canvas><div class="kpi-sub">Need attention</div></div>
+      </div>
+
+      <div class="ch2">
+        <div class="cc"><div class="cc-title">Collections Trend</div><div class="cc-sub">Submitted vs collected 6 months</div><canvas id="hb-collTrend" height="185"></canvas></div>
+        <div class="cc"><div class="cc-title">Payer Mix</div><div class="cc-sub">Revenue distribution</div><canvas id="hb-payerMix" height="185"></canvas></div>
+      </div>
+
+      <div class="ch3">
+        <div class="cc"><div class="cc-title">Patients by State</div><div class="cc-sub">Geographic distribution</div><canvas id="hb-stateChart" height="160"></canvas></div>
+        <div class="cc"><div class="cc-title">Referral Sources</div><div class="cc-sub">Inbound types</div><canvas id="hb-refSrc" height="160"></canvas></div>
+        <div class="cc"><div class="cc-title">Monthly Revenue</div><div class="cc-sub">6-month trend</div><canvas id="hb-revMonthly" height="160"></canvas></div>
+      </div>
+    </div>
+
+    <!-- HBH Overview tab -->
+    <div class="inner-view" id="iv-mdpa-hbh-overview">
+      <div class="sh"><span class="sh-title">Hamilton Behavioral Health NJ Overview</span><div class="sh-line"></div></div>
+      <div class="kpi-grid kpi-5">
+        <div class="kpi fi1" style="--k-c:#22c55e"><div class="kpi-label">Active Patients</div><div class="kpi-val" data-target="148">0</div><canvas class="kpi-spark" id="spark-hnj-pat" data-series="128,133,126,138,143,148" data-color="#22c55e"></canvas><div class="kpi-sub">NJ/NY/PA</div></div>
+        <div class="kpi fi2" style="--k-c:#22c55e"><div class="kpi-label">Collections MTD</div><div class="kpi-val" data-target="30" data-prefix="$" data-suffix="K">$0K</div><canvas class="kpi-spark" id="spark-hnj-coll" data-series="26,29,24,30,33,30" data-color="#22c55e"></canvas><div class="kpi-sub">Medicaid billings</div></div>
+        <div class="kpi fi3" style="--k-c:#fbbf24"><div class="kpi-label">Denial Rate</div><div class="kpi-val" data-target="14" data-suffix="%">0%</div><canvas class="kpi-spark" id="spark-hnj-deny" data-series="12,11,13,11,12,14" data-color="#fbbf24"></canvas><div class="kpi-sub">Medicaid claims</div></div>
+        <div class="kpi fi4" style="--k-c:#22c55e"><div class="kpi-label">Referrals MTD</div><div class="kpi-val" data-target="9">0</div><canvas class="kpi-spark" id="spark-hnj-ref" data-series="5,6,4,7,8,9" data-color="#22c55e"></canvas><div class="kpi-sub">Inbound</div></div>
+        <div class="kpi fi5" style="--k-c:#f87171"><div class="kpi-label">Pending Auths</div><div class="kpi-val" data-target="7">0</div><canvas class="kpi-spark" id="spark-hnj-auth" data-series="9,8,11,6,8,7" data-color="#f87171"></canvas><div class="kpi-sub">Prior auth needed</div></div>
+      </div>
+
+      <div class="ch2">
+        <div class="cc"><div class="cc-title">Collections Trend</div><div class="cc-sub">Submitted vs collected</div><canvas id="hnj-collTrend2" height="185"></canvas></div>
+        <div class="cc"><div class="cc-title">Payer Mix</div><div class="cc-sub">Medicaid distribution</div><canvas id="hnj-payerMix2" height="185"></canvas></div>
+      </div>
+
+      <div class="ch3">
+        <div class="cc"><div class="cc-title">Patients by State</div><div class="cc-sub">NJ/NY/PA breakdown</div><canvas id="hnj-state2" height="160"></canvas></div>
+        <div class="cc"><div class="cc-title">Referral Sources</div><div class="cc-sub">Inbound types</div><canvas id="hnj-ref2" height="160"></canvas></div>
+        <div class="cc"><div class="cc-title">Denial Reasons</div><div class="cc-sub">Top claim denials</div><canvas id="hnj-den2" height="160"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Providers tab -->
+    <div class="inner-view" id="iv-mdpa-providers">
+      <div class="sh"><span class="sh-title">HBH Providers</span><div class="sh-line"></div></div>
+      <div class="tw"><div class="th-row"><span class="th-title">Provider Directory</span><span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text3)">2 active</span></div><div id="mdpa-provList"></div></div>
+    </div>
+
+    <!-- Compliance tab -->
+    <div class="inner-view" id="iv-mdpa-compliance">
+      <div class="sh"><span class="sh-title">HBH Compliance Checklist</span><div class="sh-line"></div></div>
+      <div class="tw">
+        <div class="th-row"><span class="th-title">Compliance Status</span><span class="sp sp-w">2 items need review</span></div>
+        <table><thead><tr><th>Item</th><th>HBH Status</th><th>Due Date</th><th>Status</th></tr></thead>
+        <tbody id="mdpa-compBody"></tbody></table>
+      </div>
+    </div>
+
+    <!-- Referrals tab -->
+    <div class="inner-view" id="iv-mdpa-referrals">
+      <div class="sh"><span class="sh-title">Referral Summary</span><div class="sh-line"></div></div>
+      <div class="kpi-grid kpi-4">
+        <div class="kpi" style="--k-c:#6366f1"><div class="kpi-label">Total MTD</div><div class="kpi-val">9</div><div class="kpi-sub">HBH NJ</div></div>
+        <div class="kpi" style="--k-c:#fbbf24"><div class="kpi-label">Pending</div><div class="kpi-val">4</div><div class="kpi-sub">Awaiting action</div></div>
+        <div class="kpi" style="--k-c:#34d399"><div class="kpi-label">Converted</div><div class="kpi-val">3</div><div class="kpi-sub">Active patients</div></div>
+        <div class="kpi" style="--k-c:#34d399"><div class="kpi-label">Conv. Rate</div><div class="kpi-val">33%</div><div class="kpi-sub">Referral → patient</div></div>
+      </div>
+
+      <div class="ch2">
+        <div class="cc"><div class="cc-title">Referrals by Month</div><div class="cc-sub">Monthly trend</div><canvas id="hb-refTrend" height="200"></canvas></div>
+        <div class="cc"><div class="cc-title">By Source</div><div class="cc-sub">HBH referral breakdown</div><div id="hb-refSrcBox"></div></div>
+      </div>
+    </div>
+
+  </div>
+  <!-- end MDPA -->
+
+  <!-- ═══════════ HNJ BRAND VIEW ═══════════ -->
+  <div class="brand-view" id="bv-hnj">
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px" class="fi fi1">
+      <span class="payer-badge">NJ Medicaid (DMAHS)</span>
+      <span class="payer-badge">NJ FamilyCare</span>
+      <span class="payer-badge">Horizon NJ Health</span>
+      <span class="payer-badge">Amerigroup NJ</span>
+      <span class="payer-badge">WellCare NJ</span>
+      <span class="payer-badge">Other Managed Medicaid</span>
+    </div>
+
+    <div class="alert-banner" id="alert-hnj" style="display:none;">
+      <span class="ind ir"></span>
+      <span class="alert-banner-text" id="alert-hnj-text">Alert: Denial rate elevated or compliance review needed</span>
+    </div>
+
+    <div class="hero hero-hnj fi fi1">
+      <div>
+        <div class="hero-title">Hamilton Behavioral Health NJ</div>
+        <div class="hero-sub">MEDICAID OPERATIONS · NJ PRIMARY · NY/PA OVERFLOW</div>
+      </div>
+      <div class="hero-stat"><div class="hero-stat-val" style="color:#22c55e">148</div><div class="hero-stat-label">Active Patients</div></div>
+      <div class="hero-stat"><div class="hero-stat-val" style="color:#22c55e">$30K</div><div class="hero-stat-label">Collections MTD</div></div>
+      <div class="hero-stat"><div class="hero-stat-val" style="color:#fbbf24">14%</div><div class="hero-stat-label">Denial Rate</div></div>
+      <div class="hero-stat"><div class="hero-stat-val" style="color:#f87171">7</div><div class="hero-stat-label">Pending Auths</div></div>
+    </div>
+
+    <div class="tabs" id="tabs-hnj">
+      <button class="tab active" onclick="switchInner('hnj','overview',this)">Overview</button>
+      <button class="tab" onclick="switchInner('hnj','billing',this)">Billing</button>
+      <button class="tab" onclick="switchInner('hnj','intake',this)">Intake Pipeline</button>
+      <button class="tab" onclick="switchInner('hnj','referrals',this)">Referrals</button>
+      <button class="tab" onclick="switchInner('hnj','staff',this)">Staff</button>
+      <button class="tab" onclick="switchInner('hnj','compliance',this)">Compliance</button>
+    </div>
+
+    <!-- Overview tab -->
+    <div class="inner-view active" id="iv-hnj-overview">
+      <div class="sh"><span class="sh-title">Key Metrics</span><div class="sh-line"></div></div>
+      <div class="kpi-grid kpi-5">
+        <div class="kpi fi1" style="--k-c:#22c55e"><div class="kpi-label">Active Patients</div><div class="kpi-val" data-target="148">0</div><canvas class="kpi-spark" id="spark-hnj-o-pat" data-series="128,133,126,138,143,148" data-color="#22c55e"></canvas><div class="kpi-sub">NJ/NY/PA</div></div>
+        <div class="kpi fi2" style="--k-c:#22c55e"><div class="kpi-label">Collections MTD</div><div class="kpi-val" data-target="30" data-prefix="$" data-suffix="K">$0K</div><canvas class="kpi-spark" id="spark-hnj-o-coll" data-series="26,29,24,30,33,30" data-color="#22c55e"></canvas><div class="kpi-sub">Medicaid billings</div></div>
+        <div class="kpi fi3" style="--k-c:#fbbf24"><div class="kpi-label">Denial Rate</div><div class="kpi-val" data-target="14" data-suffix="%">0%</div><canvas class="kpi-spark" id="spark-hnj-o-deny" data-series="12,11,13,11,12,14" data-color="#fbbf24"></canvas><div class="kpi-sub">Medicaid claims</div></div>
+        <div class="kpi fi4" style="--k-c:#22c55e"><div class="kpi-label">Referrals MTD</div><div class="kpi-val" data-target="9">0</div><canvas class="kpi-spark" id="spark-hnj-o-ref" data-series="5,6,4,7,8,9" data-color="#22c55e"></canvas><div class="kpi-sub">Inbound</div></div>
+        <div class="kpi fi5" style="--k-c:#f87171"><div class="kpi-label">Pending Auths</div><div class="kpi-val" data-target="7">0</div><canvas class="kpi-spark" id="spark-hnj-o-auth" data-series="9,8,11,6,8,7" data-color="#f87171"></canvas><div class="kpi-sub">Prior auth needed</div></div>
+      </div>
+
+      <div class="ch2">
+        <div class="cc"><div class="cc-title">Collections Trend</div><div class="cc-sub">Medicaid submitted vs collected</div><canvas id="hnj-collTrend" height="185"></canvas></div>
+        <div class="cc"><div class="cc-title">Payer Mix</div><div class="cc-sub">Revenue by Medicaid payer</div><canvas id="hnj-payerMix" height="185"></canvas></div>
+      </div>
+
+      <div class="ch3">
+        <div class="cc"><div class="cc-title">Patients by State</div><div class="cc-sub">NJ / NY / PA</div><canvas id="hnj-stateChart" height="160"></canvas></div>
+        <div class="cc"><div class="cc-title">Referral Sources</div><div class="cc-sub">Inbound types</div><canvas id="hnj-refSrc" height="160"></canvas></div>
+        <div class="cc"><div class="cc-title">Denial Reasons</div><div class="cc-sub">Top claim denials</div><canvas id="hnj-denials" height="160"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Billing tab -->
+    <div class="inner-view" id="iv-hnj-billing">
+      <div class="sh"><span class="sh-title">Medicaid Billing & Collections</span><div class="sh-line"></div></div>
+      <div class="tw">
+        <div class="th-row"><span class="th-title">Payer Performance</span><span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text3)">Current period</span></div>
+        <table><thead><tr><th>Payer</th><th>Submitted</th><th>Collected</th><th>Denied</th><th>Pending</th><th>Rate</th><th>Avg Days</th></tr></thead>
+        <tbody id="hnj-payerBody"></tbody></table>
+      </div>
+
+      <div class="ch2b">
+        <div class="cc"><div class="cc-title">Monthly Claims Volume</div><div class="cc-sub">Submitted vs collected</div><canvas id="hnj-claims" height="200"></canvas></div>
+        <div class="cc"><div class="cc-title">Denial Breakdown</div><div class="cc-sub">Top denial reasons</div><canvas id="hnj-denials2" height="200"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Intake Pipeline tab -->
+    <div class="inner-view" id="iv-hnj-intake">
+      <div class="sh"><span class="sh-title">Patient Intake Pipeline</span><div class="sh-line"></div></div>
+      <div class="pipeline" id="hnj-pipeline"></div>
+
+      <div class="ch2b">
+        <div class="cc"><div class="cc-title">New Patients by Month</div><div class="cc-sub">Intake volume trend</div><canvas id="hnj-intakeChart" height="200"></canvas></div>
+        <div class="cc"><div class="cc-title">Time to First Appointment</div><div class="cc-sub">Days from referral to first visit</div><canvas id="hnj-ttaChart" height="200"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Referrals tab -->
+    <div class="inner-view" id="iv-hnj-referrals">
+      <div class="sh"><span class="sh-title">Referral Tracker</span><div class="sh-line"></div></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+        <div class="sf">
+          <button class="sb active-hnj" onclick="filterState('all',this)">All States</button>
+          <button class="sb" onclick="filterState('NJ',this)">New Jersey</button>
+          <button class="sb" onclick="filterState('NY',this)">New York</button>
+          <button class="sb" onclick="filterState('PA',this)">Pennsylvania</button>
+        </div>
+        <button class="new-ref-btn" onclick="openRefDrawer()">+ New Referral</button>
+      </div>
+      <div class="tw">
+        <div class="th-row"><span class="th-title">Recent Referrals</span><span id="hnj-refCount" style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text3)"></span></div>
+        <table><thead><tr><th>ID</th><th>Date</th><th>Patient</th><th>Source</th><th>State</th><th>Payer</th><th>Status</th><th>Days</th></tr></thead>
+        <tbody id="hnj-refBody"></tbody></table>
+      </div>
+    </div>
+
+    <!-- Staff tab -->
+    <div class="inner-view" id="iv-hnj-staff">
+      <div class="sh"><span class="sh-title">Staff Metrics</span><div class="sh-line"></div></div>
+      <div id="hnj-staffArea"></div>
+    </div>
+
+    <!-- Compliance tab -->
+    <div class="inner-view" id="iv-hnj-compliance">
+      <div class="sh"><span class="sh-title">Compliance & Credentialing</span><div class="sh-line"></div></div>
+      <div class="tw"><div class="th-row"><span class="th-title">NJ Medicaid Compliance Checklist</span><span class="sp sp-w">2 items need review</span></div><div id="hnj-compList"></div></div>
+    </div>
+
+  </div>
+  <!-- end HNJ -->
+
+</main>
+
+<!-- New Referral Drawer -->
+<div class="drawer" id="ref-drawer">
+  <div class="drawer-head">
+    <span>New Referral</span>
+    <button class="drawer-close" onclick="closeRefDrawer()">×</button>
+  </div>
+  <div class="drawer-body">
+    <form onsubmit="submitNewReferral(event)">
+      <div class="form-group">
+        <label class="form-label">Patient Initials</label>
+        <input type="text" class="form-input" id="ref-initials" placeholder="e.g., A.B." maxlength="5" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Referral Date</label>
+        <input type="date" class="form-input" id="ref-date" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Source</label>
+        <select class="form-select" id="ref-source" required>
+          <option value="">Select source...</option>
+          <option value="PCP">PCP / Primary Care</option>
+          <option value="Hospital">Hospital / ER</option>
+          <option value="Insurance">Insurance / Managed Care</option>
+          <option value="Self">Self-Referral</option>
+          <option value="Other">Other Provider</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">State</label>
+        <select class="form-select" id="ref-state" required>
+          <option value="">Select state...</option>
+          <option value="NJ">New Jersey</option>
+          <option value="NY">New York</option>
+          <option value="PA">Pennsylvania</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Payer</label>
+        <select class="form-select" id="ref-payer" required>
+          <option value="">Select payer...</option>
+          <option value="NJ Medicaid">NJ Medicaid (DMAHS)</option>
+          <option value="NJ FamilyCare">NJ FamilyCare</option>
+          <option value="Horizon NJ Health">Horizon NJ Health</option>
+          <option value="Amerigroup NJ">Amerigroup NJ</option>
+          <option value="WellCare NJ">WellCare NJ</option>
+          <option value="Other">Other Managed Medicaid</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Status</label>
+        <select class="form-select" id="ref-status" required>
+          <option value="pending">Pending</option>
+          <option value="scheduled">Scheduled</option>
+          <option value="converted">Converted</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes (optional)</label>
+        <input type="text" class="form-input" id="ref-notes" placeholder="Additional details...">
+      </div>
+      <button type="submit" class="form-submit">Create Referral</button>
+    </form>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal" id="settings-modal">
+  <div class="modal-content">
+    <div class="modal-head">
+      <span>Settings</span>
+      <button class="modal-close" onclick="closeSettings()">×</button>
+    </div>
+    <div style="margin-bottom:20px;">
+      <label class="form-label" style="margin-bottom:12px;">Sheet URLs</label>
+      <div class="form-group">
+        <label class="form-label">HB Financials</label>
+        <input type="url" class="form-input" id="settings-fin" placeholder="Google Sheet URL">
+      </div>
+      <div class="form-group">
+        <label class="form-label">HBH Billing</label>
+        <input type="url" class="form-input" id="settings-bill" placeholder="Google Sheet URL">
+      </div>
+      <div class="form-group">
+        <label class="form-label">HBH Referral Log</label>
+        <input type="url" class="form-input" id="settings-ref" placeholder="Google Sheet URL">
+      </div>
+      <div style="margin-top:20px;padding:12px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);">
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">Status</div>
+        <div style="font-size:12px;color:var(--text2);">
+          <span class="sp sp-w">Demo Mode</span> · No sheets connected
+        </div>
+      </div>
+      <button class="form-submit" style="margin-top:20px;" onclick="saveSettings()">Save Settings</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+Chart.defaults.color='#3d4260';Chart.defaults.borderColor='rgba(255,255,255,0.05)';
+Chart.defaults.font.family="'DM Mono',monospace";Chart.defaults.font.size=10;
+
+// Clock
+setInterval(()=>document.getElementById('liveTime').textContent=new Date().toLocaleTimeString(),1000);
+document.getElementById('liveTime').textContent=new Date().toLocaleTimeString();
+
+// Settings
+const SETTINGS_KEY='hbops_settings';
+function openSettings(){document.getElementById('settings-modal').classList.add('active');}
+function closeSettings(){document.getElementById('settings-modal').classList.remove('active');}
+function saveSettings(){
+  const s={fin:document.getElementById('settings-fin').value,bill:document.getElementById('settings-bill').value,ref:document.getElementById('settings-ref').value};
+  localStorage.setItem(SETTINGS_KEY,JSON.stringify(s));
+  closeSettings();
+}
+function loadSettings(){
+  const s=JSON.parse(localStorage.getItem(SETTINGS_KEY)||'{}');
+  if(s.fin)document.getElementById('settings-fin').value=s.fin;
+  if(s.bill)document.getElementById('settings-bill').value=s.bill;
+  if(s.ref)document.getElementById('settings-ref').value=s.ref;
+}
+
+// KPI Animation
+function animateKpis(){
+  document.querySelectorAll('[data-target]').forEach(el=>{
+    const target=parseInt(el.getAttribute('data-target'));
+    const prefix=el.getAttribute('data-prefix')||'';
+    const suffix=el.getAttribute('data-suffix')||'';
+    let current=0;
+    const dur=1200;
+    const start=Date.now();
+    const animate=()=>{
+      const elapsed=Date.now()-start;
+      const progress=Math.min(elapsed/dur,1);
+      current=Math.round(target*progress);
+      el.textContent=prefix+current+suffix;
+      if(progress<1)requestAnimationFrame(animate);
+    };
+    animate();
+  });
+}
+
+// Sparklines
+function drawSparkline(canvasId,series,color){
+  const canvas=document.getElementById(canvasId);
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  const values=series.split(',').map(Number);
+  const w=canvas.width;
+  const h=canvas.height;
+  const pad=2;
+  const drawW=w-2*pad;
+  const minVal=Math.min(...values);
+  const maxVal=Math.max(...values);
+  const range=maxVal-minVal||1;
+  ctx.clearRect(0,0,w,h);
+  ctx.strokeStyle=color;
+  ctx.lineWidth=1.5;
+  ctx.lineJoin='round';
+  ctx.lineCap='round';
+  ctx.beginPath();
+  values.forEach((v,i)=>{
+    const x=pad+i*(drawW/(values.length-1));
+    const y=h-pad-(v-minVal)/range*(h-2*pad);
+    if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+  ctx.fillStyle=color+'22';
+  ctx.fill();
+}
+
+function initSparklines(){
+  document.querySelectorAll('[data-series]').forEach(c=>{
+    const series=c.getAttribute('data-series');
+    const color=c.getAttribute('data-color');
+    drawSparkline(c.id,series,color);
+  });
+}
+
+// Referral Drawer
+function openRefDrawer(){
+  const today=new Date().toISOString().split('T')[0];
+  document.getElementById('ref-date').value=today;
+  document.getElementById('ref-drawer').classList.add('active');
+}
+function closeRefDrawer(){
+  document.getElementById('ref-drawer').classList.remove('active');
+  document.getElementById('ref-drawer').querySelector('form').reset();
+}
+function submitNewReferral(e){
+  e.preventDefault();
+  const id='REF-'+String(Math.floor(Math.random()*1000)).padStart(3,'0');
+  alert('Referral '+id+' created. Sheets integration available with Google Sheets connection in Settings.');
+  closeRefDrawer();
+}
+
+// Alert scanning
+function scanAlerts(){
+  const mdpaAlerts=[];const hnjAlerts=[];
+  // Compliance overdue check
+  mdpaAlerts.push('1 compliance item needs review');
+  hnjAlerts.push('Denial rate >15% or pending compliance review');
+
+  const mdpaAlert=document.getElementById('alert-mdpa');
+  const hnjAlert=document.getElementById('alert-hnj');
+  if(mdpaAlerts.length){mdpaAlert.style.display='flex';document.getElementById('alert-mdpa-text').textContent=mdpaAlerts[0];}
+  if(hnjAlerts.length){hnjAlert.style.display='flex';document.getElementById('alert-hnj-text').textContent=hnjAlerts[0];}
+}
+
+// BRAND SWITCHER
+let activeBrand='mdpa';
+function switchBrand(brand){
+  activeBrand=brand;
+  document.querySelectorAll('.brand-view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.brand-tab').forEach(b=>b.classList.remove('active-mdpa','active-hnj'));
+  document.getElementById('bv-'+brand).classList.add('active');
+  document.getElementById('btn-'+brand).classList.add('active-'+brand);
+  const acc=brand==='hnj'?'#22c55e':'#6366f1';
+  const tag=brand==='hnj'?'Health NJ · Medicaid':'HB · Management';
+  document.getElementById('hdr-accent').style.color=acc;
+  document.getElementById('hdr-tag').textContent=tag;
+  const dot=document.getElementById('live-dot');
+  dot.style.background=acc;dot.style.boxShadow='0 0 8px '+acc;
+  if(brand==='hnj'&&!window._hnjChartsDrawn){drawHnjCharts();window._hnjChartsDrawn=true;}
+  animateKpis();
+  setTimeout(initSparklines,50);
+}
+
+// INNER TABS
+function switchInner(brand,view,btn){
+  document.querySelectorAll(`#bv-${brand} .inner-view`).forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll(`#tabs-${brand} .tab`).forEach(t=>t.classList.remove('active'));
+  document.getElementById(`iv-${brand}-${view}`).classList.add('active');
+  btn.classList.add('active');
+  setTimeout(()=>{animateKpis();initSparklines();},50);
+}
+
+// ═══════ MDPA CHARTS ═══════
+const MONTHS=['Oct','Nov','Dec','Jan','Feb','Mar'];
+
+function drawMdpaCharts(){
+  new Chart(document.getElementById('hb-collTrend'),{type:'line',data:{labels:MONTHS,datasets:[
+    {label:'Submitted',data:[20,23,19,24,27,30],borderColor:'rgba(99,102,241,0.4)',backgroundColor:'rgba(99,102,241,0.04)',tension:0.4,fill:true,borderDash:[4,3]},
+    {label:'Collected',data:[15,18,14,18,19,20],borderColor:'#6366f1',backgroundColor:'rgba(99,102,241,0.07)',tension:0.4,fill:true},
+  ]},options:{responsive:true,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{boxWidth:8,padding:12}}},scales:{y:{grid:{color:'rgba(255,255,255,0.03)'},ticks:{callback:v=>'$'+v+'K'}},x:{grid:{display:false}}}}});
+
+  new Chart(document.getElementById('hb-payerMix'),{type:'doughnut',data:{labels:['Payer A','Payer B','Payer C'],datasets:[{data:[45,35,20],backgroundColor:['#6366f1','#818cf8','#a5b4fc'],borderColor:'#09090f',borderWidth:3,hoverOffset:4}]},options:{responsive:true,cutout:'65%',plugins:{legend:{position:'bottom',labels:{padding:10,boxWidth:8}}}}});
+
+  new Chart(document.getElementById('hb-stateChart'),{type:'doughnut',data:{labels:['NJ','NY','PA'],datasets:[{data:[70,20,10],backgroundColor:['#6366f1','#818cf8','#a5b4fc'],borderColor:'#09090f',borderWidth:3,hoverOffset:4}]},options:{responsive:true,cutout:'60%',plugins:{legend:{position:'bottom',labels:{padding:12,boxWidth:8}}}}});
+
+  new Chart(document.getElementById('hb-refSrc'),{type:'bar',data:{labels:['PCP','Hospital','Insurance','Self','Other'],datasets:[{data:[5,2,1,1,0],backgroundColor:'rgba(99,102,241,0.35)',borderColor:'#6366f1',borderWidth:1,borderRadius:4}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{grid:{color:'rgba(255,255,255,0.03)'}},x:{grid:{display:false}}}}});
+
+  new Chart(document.getElementById('hb-revMonthly'),{type:'bar',data:{labels:MONTHS,datasets:[{label:'Revenue',data:[20,23,19,24,27,30],backgroundColor:'rgba(99,102,241,0.35)',borderColor:'#6366f1',borderWidth:1,borderRadius:4}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{grid:{color:'rgba(255,255,255,0.03)'},ticks:{callback:v=>'$'+v+'K'}},x:{grid:{display:false}}}}});
+
+  // HBH Overview tab charts
+  new Chart(document.getElementById('hnj-collTrend2'),{type:'line',data:{labels:MONTHS,datasets:[
+    {label:'Submitted',data:[42,46,38,47,52,48],borderColor:'rgba(34,197,94,0.4)',backgroundColor:'rgba(34,197,94,0.04)',tension:0.4,fill:true,borderDash:[4,3]},
+    {label:'Collected',data:[26,29,24,30,33,30],borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,0.07)',tension:0.4,fill:true},
+  ]},options:{responsive:true,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{boxWidth:8,padding:12}}},scales:{y:{grid:{color:'rgba(255,255,255,0.03)'},ticks:{callback:v=>'$'+v+'K'}},x:{grid:{display:false}}}}});
+
+  const PAYERS=['DMAHS','FamilyCare','Horizon NJ','Amerigroup','WellCare','Other'];
+  const PAYER_C=['#22c55e','#16a34a','#4ade80','#86efac','#bbf7d0','#6b7280'];
+  new Chart(document.getElementById('hnj-payerMix2'),{type:'doughnut',data:{labels:PAYERS,datasets:[{data:[32,24,18,12,8,6],backgroundColor:PAYER_C,borderColor:'#09090f',borderWidth:3,hoverOffset:4}]},options:{responsive:true,cutout:'65%',plugins:{legend:{position:'bottom',labels:{padding:10,boxWidth:8}}}}});
+
+  new Chart(document.getElementById('hnj-state2'),{type:'doughnut',data:{labels:['NJ','NY','PA'],datasets:[{data:[78,14,8],backgroundColor:['#22c55e','#4ade80','#86efac'],borderColor:'#09090f',borderWidth:3,hoverOffset:4}]},options:{responsive:true,cutout:'60%',plugins:{legend:{position:'bottom',labels:{padding:12,boxWidth:8}}}}});
+
+  new Chart(document.getElementById('hnj-ref2'),{type:'bar',data:{labels:['PCP','Hospital','Insurance','Self','Other'],datasets:[{data:[4,2,1,1,1],backgroundColor:'rgba(34,197,94,0.35)',borderColor:'#22c55e',borderWidth:1,borderRadius:4}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{grid:{color:'rgba(255,255,255,0.03)'}},x:{grid:{display:false}}}}});
+
+  new Chart(document.getElementById('hnj-den2'),{type:'bar',data:{labels:['Auth req','Eligibility','Coding','Dup','Other'],datasets:[{data:[5,3,2,1,1],backgroundColor:'rgba(248,113,113,0.35)',borderColor:'#f87171',borderWidth:1,borderRadius:4}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{grid:{color:'rgba(255,255,255,0.03)'}},x:{grid:{display:false}}}}});
+
+  // Referrals chart
+  new Chart(document.getElementById('hb-refTrend'),{type:'line',data:{labels:MONTHS,datasets:[{label:'Referrals',data:[5,6,4,7,8,9],borderColor:'#6366f1',backgroundColor:'rgba(99,102,241,0.07)',tension:0.4,fill:true}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{grid:{color:'rgba(255,255,255,0.03)'}},x:{grid:{display:false}}}}});
+
+  // Referral sources
+  const sources=[{name:'PCP',count:5,c:'#6366f1'},{name:'Hospital',count:2,c:'#818cf8'},{name:'Insurance',count:1,c:'#a5b4fc'},{name:'Self',count:1,c:'#c7d2fe'}];
+  document.getElementById('hb-refSrcBox').innerHTML=sources.map(s=>`<div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border)"><span style="width:8px;height:8px;border-radius:50%;background:${s.c};flex-shrink:0"></span><div style="flex:1"><div style="font-size:12px;color:var(--text)">${s.name}</div><div style="height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:5px"><div style="height:100%;width:${s.count/5*100}%;background:${s.c};border-radius:2px"></div></div></div><span style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:${s.c}">${s.count}</span></div>`).join('');
+
+  // Providers list
+  const provs=[{name:'Dr. Farid N.',role:'Psychiatrist',util:74},{name:'Sandra L.',role:'Social Worker',util:62}];
+  document.getElementById('mdpa-provList').innerHTML=provs.map(p=>{
+    const uc=p.util>=80?'#34d399':p.util>=65?'#fbbf24':'#f87171';
+    return`<div class="prow"><div class="pav" style="background:#22c55e22;color:#22c55e">${p.name.split(' ').map(w=>w[0]).join('').slice(0,2)}</div><div class="pinfo"><div class="pname">${p.name}</div><div class="prole">${p.role}</div></div><div class="util-w"><div class="util-pct">${p.util}%</div><div class="util-bar"><div class="util-fill" style="width:${p.util}%;background:${uc}"></div></div></div><span class="sp sp-h">HBH</span></div>`;}).join('');
+
+  // Compliance
+  const compItems=[
+    {item:'HIPAA Training',st:'ig',due:'Apr 1 2026',status:'sp-w'},
+    {item:'Malpractice Insurance',st:'ig',due:'Jun 15 2026',status:'sp-g'},
+    {item:'Provider Credentialing',st:'iw',due:'Mar 31 2026',status:'sp-w'},
+    {item:'CAQH Updates',st:'ig',due:'Current',status:'sp-g'},
+    {item:'DEA Registration',st:'ig',due:'Dec 2026',status:'sp-g'},
+    {item:'State Licensure NJ',st:'ig',due:'Jan 2027',status:'sp-g'},
+    {item:'NPI Attestation',st:'iw',due:'Apr 15 2026',status:'sp-w'},
+  ];
+  document.getElementById('mdpa-compBody').innerHTML=compItems.map(r=>`<tr><td>${r.item}</td><td style="text-align:center"><span class="ind ${r.st}"></span></td><td class="mono">${r.due}</td><td><span class="sp ${r.status}">${r.status==='sp-w'?'Review':'OK'}</span></td></tr>`).join('');
+}
+
+// ═══════ HNJ CHARTS & DATA ═══════
+function drawHnjCharts(){
+  const PAYERS=['DMAHS','FamilyCare','Horizon NJ','Amerigroup','WellCare','Other'];
+  const PAYER_C=['#22c55e','#16a34a','#4ade80','#86efac','#bbf7d0','#6b7280'];
+
+  new Chart(document.getElementById('hnj-collTrend'),{type:'line',data:{labels:MONTHS,datasets:[
+    {label:'Submitted',data:[42,46,38,47,52,48],borderColor:'rgba(34,197,94,0.4)',backgroundColor:'rgba(34,197,94,0.04)',tension:0.4,fill:true,borderDash:[4,3]},
+    {label:'Collected',data:[26,29,24,30,33,30],borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,0.07)',tension:0.4,fill:true},
+  ]},options:{responsive:true,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{boxWidth:8,padding:12}}},scales:{y:{grid:{color:'rgba(255,255,255,0.03)'},ticks:{callback:v=>'$'+v+'K'}},x:{grid:{display:false}}}}});
+
+  new Chart(document.getElementById('hnj-payerMix'),{type:'doughnut',data:{labels:PAYERS,datasets:[{data:[32,24,18,12,8,6],backgroundColor:PAYER_C,borderColor:'#09090f',borderWidth:3,hoverOffset:4}]},options:{responsive:true,cutout:'65%',plugins:{legend:{position:'bottom',labels:{padding:10,boxWidth:8}}}}});
+
+  new Chart(document.getElementById('hnj-stateChart'),{type:'doughnut',data:{labels:['NJ','NY','PA'],datasets:[{data:[78,14,8],backgroundColor:['#22c55e','#4ade80','#86efac'],borderColor:'#09090f',borderWidth:3,hoverOffset:4}]},options:{responsive:true,cutout:'60%',plugins:{legend:{position:'bottom',labels:{padding:12,boxWidth:8}}}}});
+
+  new Chart(document.getElementById('hnj-refSrc'),{type:'bar',data:{labels:['PCP','Hospital','Insurance','Self','Other'],datasets:[{data:[4,2,1,1,1],backgroundColor:'rgba(34,197,94,0.35)',borderColor:'#22c55e',borderWidth:1,borderRadius:4}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{grid:{color:'rgba(255,255,255,0.03)'}},x:{grid:{display:false}}}}});
+
+  new Chart(document.getElementById('hnj-denials'),{type:'bar',data:{labels:['Auth req','Eligibility','Coding','Dup','Other'],datasets:[{data:[5,3,2,1,1],backgroundColor:'rgba(248,113,113,0.35)',borderColor:'#f87171',borderWidth:1,borderRadius:4}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{grid:{color:'rgba(255,255,255,0.03)'}},x:{grid:{display:false}}}}});
+
+  new Chart(document.getElementById('hnj-claims'),{type:'bar',data:{labels:MONTHS,datasets:[
+    {label:'Submitted',data:[42,46,38,47,52,48],backgroundColor:'rgba(34,197,94,0.18)',borderColor:'#22c55e',borderWidth:1,borderRadius:3},
+    {label:'Collected',data:[26,29,24,30,33,30],backgroundColor:'rgba(34,197,94,0.45)',borderColor:'#16a34a',borderWidth:1,borderRadius:3},
+  ]},options:{responsive:true,plugins:{legend:{position:'top',labels:{boxWidth:8,padding:10}}},scales:{y:{grid:{color:'rgba(255,255,255,0.03)'},ticks:{callback:v=>'$'+v+'K'}},x:{grid:{display:false}}}}});
+
+  new Chart(document.getElementById('hnj-denials2'),{type:'bar',data:{labels:['Prior Auth','Eligibility','Coding Error','Duplicate','Timely Filing'],datasets:[{label:'Claims',data:[5,3,2,1,1],backgroundColor:'rgba(248,113,113,0.35)',borderColor:'#f87171',borderWidth:1,borderRadius:4}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{grid:{color:'rgba(255,255,255,0.03)'}},x:{grid:{display:false}}}}});
+
+  new Chart(document.getElementById('hnj-intakeChart'),{type:'line',data:{labels:MONTHS,datasets:[{label:'New Patients',data:[8,10,7,11,12,11],borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,0.07)',tension:0.4,fill:true}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{grid:{color:'rgba(255,255,255,0.03)'}},x:{grid:{display:false}}}}});
+
+  new Chart(document.getElementById('hnj-ttaChart'),{type:'bar',data:{labels:['1-3 days','4-7 days','8-14 days','15-21 days','21+ days'],datasets:[{label:'Patients',data:[12,28,34,18,8],backgroundColor:'rgba(34,197,94,0.35)',borderColor:'#22c55e',borderWidth:1,borderRadius:4}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{grid:{color:'rgba(255,255,255,0.03)'}},x:{grid:{display:false}}}}});
+
+  // Payer table
+  const payers=[
+    {name:'NJ Medicaid (DMAHS)',sub:42,col:26,den:7,pen:9,rate:62,days:28},
+    {name:'NJ FamilyCare',sub:28,col:19,den:4,pen:5,rate:68,days:24},
+    {name:'Horizon NJ Health',sub:18,col:13,den:2,pen:3,rate:72,days:18},
+    {name:'Amerigroup NJ',sub:14,col:9,den:3,pen:2,rate:64,days:22},
+    {name:'WellCare NJ',sub:10,col:6,den:2,pen:2,rate:60,days:31},
+    {name:'Other',sub:6,col:4,den:0,pen:2,rate:67,days:20},
+  ];
+  document.getElementById('hnj-payerBody').innerHTML=payers.map(p=>`<tr><td>${p.name}</td><td class="mono"><div>$${p.sub}K</div><div style="height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:3px"><div style="height:100%;width:${p.sub/42*100}%;background:#22c55e"></div></div></td><td class="mono" style="color:#22c55e">$${p.col}K</td><td class="mono" style="color:#f87171">${p.den}</td><td class="mono" style="color:#fbbf24">${p.pen}</td><td><span class="sp ${p.rate>=70?'sp-g':p.rate>=60?'sp-w':'sp-r'}">${p.rate}%</span></td><td class="mono">${p.days}d</td></tr>`).join('');
+
+  // Pipeline
+  const stages=[
+    {name:'New Referral',c:'#fbbf24',count:7,pts:[{n:'J.D.',m:'NJ Medicaid · PCP'},{n:'M.R.',m:'NJ FamilyCare · Self'},{n:'A.K.',m:'Horizon NJ · Hospital'}]},
+    {name:'Insurance Verify',c:'#0091ff',count:5,pts:[{n:'T.L.',m:'Amerigroup NJ · PCP'},{n:'S.P.',m:'NJ Medicaid · Insurance'}]},
+    {name:'Prior Auth',c:'#f87171',count:4,pts:[{n:'R.M.',m:'WellCare NJ · Auth pending'},{n:'C.B.',m:'NJ Medicaid · Auth sent'}]},
+    {name:'Scheduled',c:'#22c55e',count:8,pts:[{n:'D.H.',m:'Horizon NJ · Mar 18'},{n:'L.N.',m:'NJ FamilyCare · Mar 19'},{n:'F.A.',m:'NJ Medicaid · Mar 21'}]},
+  ];
+  document.getElementById('hnj-pipeline').innerHTML=stages.map(s=>`<div class="ps"><div class="ps-head"><span class="ps-name" style="color:${s.c}">${s.name}</span><span class="ps-count" style="color:${s.c}">${s.count}</span></div>${s.pts.map(p=>`<div class="pc"><div class="pc-name">${p.n}</div><div class="pc-meta">${p.m}</div></div>`).join('')}${s.count>s.pts.length?`<div class="pc"><div class="pc-meta" style="color:var(--text3)">+${s.count-s.pts.length} more</div></div>`:''}</div>`).join('');
+
+  // Referrals
+  const REFS=[
+    {id:'REF-001',date:'2026-03-10',patient:'J.D.',source:'PCP',state:'NJ',payer:'NJ Medicaid',status:'pending',days:null},
+    {id:'REF-002',date:'2026-03-09',patient:'M.R.',source:'Hospital',state:'NJ',payer:'Horizon NJ Health',status:'scheduled',days:4},
+    {id:'REF-003',date:'2026-03-08',patient:'A.K.',source:'PCP',state:'NY',payer:'NJ FamilyCare',status:'converted',days:7},
+    {id:'REF-004',date:'2026-03-07',patient:'T.L.',source:'Insurance',state:'NJ',payer:'Amerigroup NJ',status:'pending',days:null},
+    {id:'REF-005',date:'2026-03-06',patient:'S.P.',source:'Self',state:'PA',payer:'WellCare NJ',status:'scheduled',days:6},
+    {id:'REF-006',date:'2026-03-05',patient:'R.M.',source:'PCP',state:'NJ',payer:'NJ Medicaid',status:'converted',days:9},
+    {id:'REF-007',date:'2026-03-04',patient:'C.B.',source:'Hospital',state:'NY',payer:'Horizon NJ Health',status:'pending',days:null},
+    {id:'REF-008',date:'2026-03-03',patient:'D.H.',source:'PCP',state:'NJ',payer:'NJ FamilyCare',status:'converted',days:5},
+    {id:'REF-009',date:'2026-03-01',patient:'L.N.',source:'Other',state:'PA',payer:'Amerigroup NJ',status:'scheduled',days:8},
+  ];
+  window.hnjRefs=REFS;
+  filterState('all',document.querySelector('.sf .sb'));
+
+  // Staff
+  const groups=[
+    {title:'Clinical',badge:'Providers',members:[
+      {name:'Dr. Farid N.',role:'Psychiatrist',metric:'74%',label:'utilization',pct:74},
+      {name:'Sandra L.',role:'Social Worker',metric:'62%',label:'utilization',pct:62},
+    ]},
+    {title:'Operations',badge:'Admin',members:[
+      {name:'Intake Coordinator',role:'Scheduling',metric:'75%',label:'utilization',pct:75},
+      {name:'Billing Specialist',role:'Medicaid Billing',metric:'64%',label:'coll. rate',pct:64},
+      {name:'Front Desk',role:'Reception',metric:'94%',label:'ans. rate',pct:94},
+    ]},
+  ];
+  document.getElementById('hnj-staffArea').innerHTML=groups.map(g=>`<div class="staff-card"><div class="sc-head"><span class="sc-title">${g.title}</span><span class="sp sp-h">${g.badge}</span></div>${g.members.map(m=>`<div class="srow"><div class="sav" style="background:rgba(34,197,94,0.12);color:#22c55e">${m.name.split(' ').map(w=>w[0]).join('').slice(0,2)}</div><div class="si"><div class="sname">${m.name}</div><div class="srole">${m.role}</div></div><div class="prog-w"><div class="prog-pct">${m.pct}%</div><div class="prog-t"><div class="prog-f" style="width:${m.pct}%;background:#22c55e"></div></div></div><div><div class="sval">${m.metric}</div><div class="slabel">${m.label}</div></div></div>`).join('')}</div>`).join('');
+
+  // Compliance
+  const compItems=[
+    {name:'NJ Medicaid Provider Enrollment',st:'g',due:'Current'},
+    {name:'NJ FamilyCare Credentialing',st:'g',due:'Dec 2026'},
+    {name:'HIPAA Privacy Policies',st:'g',due:'Annual — Oct 2026'},
+    {name:'Medicaid Audit Readiness',st:'w',due:'Review by Apr 2026'},
+    {name:'Prior Auth Procedures',st:'w',due:'Update needed'},
+    {name:'Staff Background Checks',st:'g',due:'Current'},
+    {name:'NJ State Licensure',st:'g',due:'Jan 2027'},
+    {name:'DEA Registration',st:'g',due:'Dec 2026'},
+    {name:'CAQH Provider Profiles',st:'g',due:'Current'},
+  ];
+  const colors={g:'#22c55e',w:'#fbbf24',r:'#f87171'};
+  const pills={g:'sp-g',w:'sp-w',r:'sp-r'};
+  const labels={g:'OK',w:'Review',r:'Overdue'};
+  document.getElementById('hnj-compList').innerHTML=compItems.map(i=>`<div class="ci"><span class="ci-dot" style="background:${colors[i.st]};box-shadow:0 0 5px ${colors[i.st]}"></span><span class="ci-name">${i.name}</span><span class="ci-due">${i.due}</span><span class="sp ${pills[i.st]}">${labels[i.st]}</span></div>`).join('');
+}
+
+const SC={'NJ':'#22c55e','NY':'#4ade80','PA':'#86efac'};
+function filterState(state,btn){
+  document.querySelectorAll('.sf .sb').forEach(b=>b.classList.remove('active-hnj'));
+  btn.classList.add('active-hnj');
+  const f=state==='all'?window.hnjRefs:window.hnjRefs.filter(r=>r.state===state);
+  document.getElementById('hnj-refCount').textContent=f.length+' referrals';
+  document.getElementById('hnj-refBody').innerHTML=f.map(r=>`<tr><td class="mono" style="color:var(--text3)">${r.id}</td><td class="mono">${r.date}</td><td>${r.patient}</td><td class="mono">${r.source}</td><td><span class="sp" style="background:${SC[r.state]}22;color:${SC[r.state]}">${r.state}</span></td><td class="mono" style="font-size:10px">${r.payer}</td><td><span class="sp ${r.status==='converted'?'sp-g':r.status==='scheduled'?'sp-i':'sp-w'}">${r.status}</span></td><td class="mono">${r.days?r.days+'d':'—'}</td></tr>`).join('');
+}
+
+// INIT
+window.addEventListener('DOMContentLoaded',()=>{
+  loadSettings();
+  drawMdpaCharts();
+  animateKpis();
+  setTimeout(initSparklines,100);
+  scanAlerts();
+});
+</script>
+</body>
+</html>
