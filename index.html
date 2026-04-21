@@ -1090,7 +1090,7 @@ function animateAllKpis(){
     });
   }
 
-  fetch('https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/new-jersey-counties.geojson')
+  fetch('https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/State_County/MapServer/11/query?where=STATE%3D%2734%27&outFields=NAME%2CCOUNTY&returnGeometry=true&f=geojson')
     .then(function(r){ return r.json(); })
     .then(function(gj) {
       geojsonLayer = L.geoJSON(gj, {
