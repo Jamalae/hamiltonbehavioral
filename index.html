@@ -198,6 +198,7 @@ tbody td:first-child{color:var(--text);font-weight:500;}
 .fi1{animation-delay:0.04s;opacity:0;}.fi2{animation-delay:0.08s;opacity:0;}.fi3{animation-delay:0.12s;opacity:0;}.fi4{animation-delay:0.16s;opacity:0;}.fi5{animation-delay:0.20s;opacity:0;}
 ::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
 </style>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
 
@@ -356,6 +357,7 @@ tbody td:first-child{color:var(--text);font-weight:500;}
       <button class="tab" onclick="switchInner('hnj','referrals',this)">Referrals</button>
       <button class="tab" onclick="switchInner('hnj','staff',this)">Staff</button>
       <button class="tab" onclick="switchInner('hnj','compliance',this)">Compliance</button>
+      <button class="tab" onclick="switchInner('hnj','njmap',this)">NJ Insurance Map</button>
     </div>
 
     <!-- Overview -->
@@ -430,6 +432,44 @@ tbody td:first-child{color:var(--text);font-weight:500;}
       <div class="sh"><span class="sh-title">Compliance & Credentialing</span><div class="sh-line"></div></div>
       <div class="tw"><div class="th-row"><span class="th-title">NJ Medicaid Compliance Checklist</span><span class="sp sp-w">2 items need review</span></div><div id="hnj-compList"></div></div>
     </div>
+    <div class="inner-view" id="iv-hnj-njmap" style="display:none"><div id="hb-njMapWrap"><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">
+        <div style="background:#1a1d2e;border:1px solid #2a2d3e;border-radius:8px;padding:16px;text-align:center">
+          <div style="font-size:11px;color:#8b8fa8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Commercially Insured</div>
+          <div style="font-size:28px;font-weight:700;color:#7c6ff7">6.71M</div>
+          <div style="font-size:11px;color:#8b8fa8">NJ private coverage holders</div>
+        </div>
+        <div style="background:#1a1d2e;border:1px solid #2a2d3e;border-radius:8px;padding:16px;text-align:center">
+          <div style="font-size:11px;color:#8b8fa8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Avg Commercial Rate</div>
+          <div style="font-size:28px;font-weight:700;color:#34d399">73.0%</div>
+          <div style="font-size:11px;color:#8b8fa8">Population-weighted average</div>
+        </div>
+        <div style="background:#1a1d2e;border:1px solid #2a2d3e;border-radius:8px;padding:16px;text-align:center">
+          <div style="font-size:11px;color:#8b8fa8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">NJ Population</div>
+          <div style="font-size:28px;font-weight:700;color:#7c6ff7">9.29M</div>
+          <div style="font-size:11px;color:#8b8fa8">Across 21 counties</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div style="background:#1a1d2e;border:1px solid #2a2d3e;border-radius:8px;padding:16px">
+          <div style="font-size:13px;font-weight:600;color:#e2e4f0;margin-bottom:2px">Commercial Insurance by County</div>
+          <div style="font-size:11px;color:#8b8fa8;margin-bottom:10px">ACS 2019-2023 - % with private health insurance</div>
+          <div id="hb-njMap" style="height:460px;border-radius:6px;overflow:hidden;"></div>
+        </div>
+        <div style="background:#1a1d2e;border:1px solid #2a2d3e;border-radius:8px;padding:16px;overflow:auto;max-height:560px">
+          <div style="font-size:13px;font-weight:600;color:#e2e4f0;margin-bottom:2px">County Rankings</div>
+          <div style="font-size:11px;color:#8b8fa8;margin-bottom:10px">Highest to lowest</div>
+          <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <thead><tr style="color:#8b8fa8;border-bottom:1px solid #2a2d3e">
+              <th style="padding:6px 4px;text-align:left">#</th>
+              <th style="padding:6px 4px;text-align:left">County</th>
+              <th style="padding:6px 4px">Rate</th>
+              <th style="padding:6px 4px;text-align:right">Insured</th>
+              <th style="padding:6px 4px;text-align:right">Pop.</th>
+            </tr></thead>
+            <tbody id="hb-njCountyTable"></tbody>
+          </table>
+        </div>
+      </div></div></div>
 
   </div>
   <!-- end HNJ -->
@@ -957,5 +997,62 @@ function animateAllKpis(){
 #refDrawer.open{right:0!important;}
 .tab-badge{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#f87171;color:#000;font-size:9px;font-weight:700;margin-left:6px;font-family:'DM Mono',monospace;}
 </style>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+  (function(){
+    var NJ=[
+      {name:"Hunterdon",pop:128947,pct:85.6,ins:110379},
+      {name:"Morris",pop:509285,pct:83.5,ins:425253},
+      {name:"Somerset",pop:345361,pct:81.9,ins:282851},
+      {name:"Sussex",pop:144221,pct:80.2,ins:115705},
+      {name:"Bergen",pop:955732,pct:79.4,ins:758851},
+      {name:"Monmouth",pop:643615,pct:79.0,ins:508456},
+      {name:"Burlington",pop:461860,pct:77.2,ins:356556},
+      {name:"Gloucester",pop:302294,pct:76.4,ins:230953},
+      {name:"Warren",pop:108692,pct:75.4,ins:81954},
+      {name:"Cape May",pop:95263,pct:73.5,ins:70018},
+      {name:"Middlesex",pop:863162,pct:72.8,ins:628382},
+      {name:"Union",pop:575345,pct:72.0,ins:414249},
+      {name:"Mercer",pop:379615,pct:71.4,ins:271065},
+      {name:"Ocean",pop:637229,pct:71.2,ins:453707},
+      {name:"Camden",pop:523485,pct:69.2,ins:362251},
+      {name:"Salem",pop:64837,pct:67.5,ins:43765},
+      {name:"Essex",pop:863728,pct:64.8,ins:559496},
+      {name:"Atlantic",pop:274534,pct:63.3,ins:173780},
+      {name:"Passaic",pop:524118,pct:62.4,ins:327050},
+      {name:"Hudson",pop:724854,pct:61.9,ins:448885},
+      {name:"Cumberland",pop:154152,pct:56.8,ins:87558}
+    ];
+    var breaks=[57,62,65,68,72,75,80,86];
+    var cols=['#d0e8f5','#a9cce3','#7fb3d3','#5499c0','#2980b9','#1f6fa3','#1a5c8a','#154472'];
+    function getColor(p){for(var i=breaks.length-1;i>=0;i--){if(p>=breaks[i])return cols[i];}return cols[0];}
+    var tbody=document.getElementById('hb-njCountyTable');
+    if(tbody){tbody.innerHTML=NJ.map(function(c,i){var w=Math.round((c.pct/86)*100);return'<tr style="border-bottom:1px solid #1e2130"><td style="padding:5px 4px;color:#8b8fa8">'+(i+1)+'</td><td style="padding:5px 4px;color:#e2e4f0">'+c.name+'</td><td style="padding:5px 4px"><div style="display:flex;align-items:center;gap:6px"><div style="width:50px;height:7px;border-radius:3px;background:#0f1117"><div style="width:'+w+'%;height:100%;border-radius:3px;background:'+getColor(c.pct)+'"></div></div><span style="color:#e2e4f0">'+c.pct+'%</span></div></td><td style="padding:5px 4px;text-align:right;color:#34d399">'+c.ins.toLocaleString()+'</td><td style="padding:5px 4px;text-align:right;color:#8b8fa8">'+c.pop.toLocaleString()+'</td></tr>';}).join('');}
+    window._initHbNjMap=function(){
+      var el=document.getElementById('hb-njMap');
+      if(!el||el._leaflet_id)return;
+      var map=L.map('hb-njMap',{attributionControl:false}).setView([40.1,-74.5],8);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:13}).addTo(map);
+      fetch('https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/new-jersey-counties.geojson')
+        .then(function(r){return r.json();})
+        .then(function(geo){
+          L.geoJson(geo,{
+            style:function(f){var n=f.properties.name.replace(/ County$/i,'').trim();var c=NJ.find(function(x){return x.name.toLowerCase()===n.toLowerCase();});return{fillColor:c?getColor(c.pct):'#333',weight:1,color:'#0f1117',fillOpacity:0.85};},
+            onEachFeature:function(f,layer){var n=f.properties.name.replace(/ County$/i,'').trim();var c=NJ.find(function(x){return x.name.toLowerCase()===n.toLowerCase();});if(c)layer.bindTooltip('<strong>'+c.name+' County</strong><br>'+c.pct+'% commercially insured<br>'+c.ins.toLocaleString()+' insured',{sticky:true,className:'hb-tooltip'});}
+          }).addTo(map);
+          var leg=L.control({position:'bottomleft'});
+          leg.onAdd=function(){var d=L.DomUtil.create('div');d.style.cssText='background:rgba(26,29,46,0.95);padding:8px 12px;border-radius:6px;color:#8b8fa8;font-size:11px;line-height:1.7;border:1px solid #2a2d3e';d.innerHTML='<div style="font-weight:600;color:#e2e4f0;margin-bottom:4px">% Commercially Insured</div>'+breaks.slice(0,7).map(function(b,i){return'<div style="display:flex;align-items:center;gap:6px"><div style="width:12px;height:12px;border-radius:2px;background:'+cols[i]+'"></div>'+b+'–'+(breaks[i+1]||86)+'%</div>';}).join('');return d;};
+          leg.addTo(map);
+        });
+    };
+    // Hook into switchInner if it exists
+    var origSwitch=window.switchInner;
+    window.switchInner=function(brand,tab,btn){
+      if(origSwitch)origSwitch(brand,tab,btn);
+      if(brand==='hnj'&&tab==='njmap'){setTimeout(window._initHbNjMap,100);}
+    };
+  })();
+  </script>
 </body>
 </html>
