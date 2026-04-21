@@ -1029,23 +1029,116 @@ function animateAllKpis(){
     function getColor(p){for(var i=breaks.length-1;i>=0;i--){if(p>=breaks[i])return cols[i];}return cols[0];}
     var tbody=document.getElementById('hb-njCountyTable');
     if(tbody){tbody.innerHTML=NJ.map(function(c,i){var w=Math.round((c.pct/86)*100);return'<tr style="border-bottom:1px solid #1e2130"><td style="padding:5px 4px;color:#8b8fa8">'+(i+1)+'</td><td style="padding:5px 4px;color:#e2e4f0">'+c.name+'</td><td style="padding:5px 4px"><div style="display:flex;align-items:center;gap:6px"><div style="width:50px;height:7px;border-radius:3px;background:#0f1117"><div style="width:'+w+'%;height:100%;border-radius:3px;background:'+getColor(c.pct)+'"></div></div><span style="color:#e2e4f0">'+c.pct+'%</span></div></td><td style="padding:5px 4px;text-align:right;color:#34d399">'+c.ins.toLocaleString()+'</td><td style="padding:5px 4px;text-align:right;color:#8b8fa8">'+c.pop.toLocaleString()+'</td></tr>';}).join('');}
-    window._initHbNjMap=function(){
-      var el=document.getElementById('hb-njMap');
-      if(!el||el._leaflet_id)return;
-      var map=L.map('hb-njMap',{attributionControl:false}).setView([40.1,-74.5],8);
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:13}).addTo(map);
-      fetch('https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/new-jersey-counties.geojson')
-        .then(function(r){return r.json();})
-        .then(function(geo){
-          L.geoJson(geo,{
-            style:function(f){var n=f.properties.name.replace(/ County$/i,'').trim();var c=NJ.find(function(x){return x.name.toLowerCase()===n.toLowerCase();});return{fillColor:c?getColor(c.pct):'#333',weight:1,color:'#0f1117',fillOpacity:0.85};},
-            onEachFeature:function(f,layer){var n=f.properties.name.replace(/ County$/i,'').trim();var c=NJ.find(function(x){return x.name.toLowerCase()===n.toLowerCase();});if(c)layer.bindTooltip('<strong>'+c.name+' County</strong><br>'+c.pct+'% commercially insured<br>'+c.ins.toLocaleString()+' insured',{sticky:true,className:'hb-tooltip'});}
-          }).addTo(map);
-          var leg=L.control({position:'bottomleft'});
-          leg.onAdd=function(){var d=L.DomUtil.create('div');d.style.cssText='background:rgba(26,29,46,0.95);padding:8px 12px;border-radius:6px;color:#8b8fa8;font-size:11px;line-height:1.7;border:1px solid #2a2d3e';d.innerHTML='<div style="font-weight:600;color:#e2e4f0;margin-bottom:4px">% Commercially Insured</div>'+breaks.slice(0,7).map(function(b,i){return'<div style="display:flex;align-items:center;gap:6px"><div style="width:12px;height:12px;border-radius:2px;background:'+cols[i]+'"></div>'+b+'–'+(breaks[i+1]||86)+'%</div>';}).join('');return d;};
-          leg.addTo(map);
-        });
-    };
+    window._initHbNjMap = function() {
+  if (window._hbNjMapInitialized) return;
+  window._hbNjMapInitialized = true;
+  var el = document.getElementById('hb-njMap');
+  if (!el) return;
+
+  var data = {
+    'Hunterdon':  {rate:85.6, insured:110379,  pop:128947},
+    'Morris':     {rate:83.5, insured:425253,  pop:509285},
+    'Somerset':   {rate:81.9, insured:282851,  pop:345361},
+    'Sussex':     {rate:80.2, insured:115705,  pop:144221},
+    'Bergen':     {rate:79.4, insured:758861,  pop:955732},
+    'Monmouth':   {rate:79.0, insured:508456,  pop:643615},
+    'Burlington': {rate:77.2, insured:356556,  pop:461860},
+    'Gloucester': {rate:76.4, insured:230953,  pop:302294},
+    'Warren':     {rate:75.4, insured:81954,   pop:108692},
+    'Cape May':   {rate:73.5, insured:70018,   pop:95263},
+    'Middlesex':  {rate:72.8, insured:628382,  pop:863162},
+    'Union':      {rate:72.0, insured:414249,  pop:575345},
+    'Mercer':     {rate:71.4, insured:271065,  pop:379615},
+    'Ocean':      {rate:71.2, insured:453707,  pop:637229},
+    'Camden':     {rate:68.2, insured:362251,  pop:523485},
+    'Salem':      {rate:67.5, insured:43765,   pop:64837},
+    'Essex':      {rate:64.8, insured:559496,  pop:863728},
+    'Atlantic':   {rate:63.3, insured:173780,  pop:274534},
+    'Passaic':    {rate:62.1, insured:303000,  pop:487710},
+    'Hudson':     {rate:60.5, insured:377000,  pop:623453},
+    'Cumberland': {rate:55.0, insured:82000,   pop:149527}
+  };
+
+  function getColor(r) {
+    return r>=83?'#22c55e':r>=78?'#4ade80':r>=73?'#6ee7b7':r>=68?'#34d399':r>=63?'#86efac':'#bbf7d0';
+  }
+
+  var map = L.map('hb-njMap', {zoomControl:true, scrollWheelZoom:false});
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution:'&copy; CartoDB', subdomains:'abcd', maxZoom:19
+  }).addTo(map);
+
+  var geojsonLayer, selectedLayer = null;
+
+  var tip = document.getElementById('hb-njTip');
+  if (!tip) {
+    tip = document.createElement('div');
+    tip.id = 'hb-njTip';
+    tip.style.cssText = 'position:fixed;background:rgba(9,9,15,0.95);color:#e0e0e0;padding:10px 14px;border-radius:8px;font-size:12px;pointer-events:none;display:none;z-index:99999;border:1px solid #22c55e;line-height:1.6;min-width:160px;';
+    document.body.appendChild(tip);
+  }
+
+  function highlightRow(name) {
+    var tbody = document.getElementById('hb-njCountyTable');
+    if (!tbody) return;
+    tbody.querySelectorAll('tr').forEach(function(r) {
+      var first = r.querySelector('td');
+      var match = first && first.textContent.trim() === name;
+      r.style.background = match ? 'rgba(34,197,94,0.18)' : '';
+      r.style.outline    = match ? '1px solid rgba(34,197,94,0.6)' : '';
+      if (match) r.scrollIntoView({block:'nearest', behavior:'smooth'});
+    });
+  }
+
+  fetch('https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/new-jersey-counties.geojson')
+    .then(function(r){ return r.json(); })
+    .then(function(gj) {
+      geojsonLayer = L.geoJSON(gj, {
+        style: function(f) {
+          var n = (f.properties.name || f.properties.NAME || '').replace(' County','');
+          var d = data[n] || {};
+          return {fillColor:getColor(d.rate||55), weight:1, color:'#0d1117', fillOpacity:0.80};
+        },
+        onEachFeature: function(f, layer) {
+          var n = (f.properties.name || f.properties.NAME || '').replace(' County','');
+          var d = data[n] || {};
+          layer.on('mousemove', function(e) {
+            tip.style.display = 'block';
+            tip.style.left = (e.originalEvent.clientX + 16) + 'px';
+            tip.style.top  = (e.originalEvent.clientY - 12) + 'px';
+            tip.innerHTML = '<div style="color:#22c55e;font-weight:700;margin-bottom:4px">' + n + ' County</div>' +
+              '<div>Commercial insured: <b>' + (d.rate||'—') + '%</b></div>' +
+              '<div>Insured persons: <b>' + (d.insured ? d.insured.toLocaleString() : '—') + '</b></div>' +
+              '<div style="color:#888">Population: ' + (d.pop ? d.pop.toLocaleString() : '—') + '</div>';
+            if (layer !== selectedLayer) layer.setStyle({weight:2,color:'#22c55e',fillOpacity:0.95});
+          });
+          layer.on('mouseout', function() {
+            tip.style.display = 'none';
+            if (layer !== selectedLayer) geojsonLayer.resetStyle(layer);
+          });
+          layer.on('click', function() {
+            if (selectedLayer && selectedLayer !== layer) geojsonLayer.resetStyle(selectedLayer);
+            selectedLayer = layer;
+            layer.setStyle({weight:3,color:'#22c55e',fillOpacity:1});
+            highlightRow(n);
+          });
+        }
+      }).addTo(map);
+      map.fitBounds(geojsonLayer.getBounds());
+
+      var legend = L.control({position:'bottomleft'});
+      legend.onAdd = function() {
+        var div = L.DomUtil.create('div');
+        div.style.cssText = 'background:rgba(9,9,15,0.9);padding:10px 14px;border-radius:8px;color:#ccc;font-size:11px;border:1px solid #222;';
+        div.innerHTML = '<div style="font-weight:700;color:#22c55e;margin-bottom:6px">% Commercially Insured</div>' +
+          [['&ge;83%','#22c55e'],['78–83%','#4ade80'],['73–78%','#6ee7b7'],['68–73%','#34d399'],['63–68%','#86efac'],['&lt;63%','#bbf7d0']]
+          .map(function(x){return '<div style="margin:2px 0"><span style="display:inline-block;width:11px;height:11px;background:'+x[1]+';border-radius:2px;vertical-align:middle;margin-right:5px"></span>'+x[0]+'</div>';})
+          .join('');
+        return div;
+      };
+      legend.addTo(map);
+    });
+};
     // Hook into switchInner if it exists
     var origSwitch=window.switchInner;
     window.switchInner=function(brand,tab,btn){
